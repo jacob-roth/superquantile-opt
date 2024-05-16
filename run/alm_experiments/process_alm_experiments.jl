@@ -131,6 +131,8 @@ function get_mn_grid(out::Dict, outname::String, method1::String, method2::Strin
           idx_ok1[i,j] = out[method1][mn_key]["pinfeas"][1] <= 1e-8 && out[method1][mn_key]["pobj"][1] <= out["alm"][mn_key]["pobj"][1] + 1e-4 # or could be "feasible"
         elseif method1 == "grb_best"
           idx_ok1[i,j] = (grb_opt || grbds_opt)
+        elseif method1 == "osqp"
+          idx_ok1[i,j] = all(out[method1][mn_key]["pinfeas"] .<= 1e-3) && all(out[method1][mn_key]["dinfeas"] .<= 1e-3) && all(out[method1][mn_key]["relgap"] .<= 1e-3)
         else
           # idx_ok1[i,j] = out[method1][mn_key]["status"][1] == 1
           idx_ok1[i,j] = all(out[method1][mn_key]["pinfeas"] .<= tol) && all(out[method1][mn_key]["dinfeas"] .<= tol) && all(out[method1][mn_key]["relgap"] .<= tol)
@@ -138,26 +140,30 @@ function get_mn_grid(out::Dict, outname::String, method1::String, method2::Strin
 
         if method1 == "grb_best"
           if grb_opt && grbds_opt
-            data[i,j] = nanmean(min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]) ./ out[method2][mn_key][field])
+            data[i,j] = nanmean((min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]).-out[method2][mn_key][field]) ./ out[method2][mn_key][field])
           elseif grb_opt && !grbds_opt
-            data[i,j] = nanmean(out["grb"][mn_key][field] ./ out[method2][mn_key][field])
+            data[i,j] = nanmean((out["grb"][mn_key][field].-out[method2][mn_key][field]) ./ out[method2][mn_key][field])
           elseif !grb_opt && grbds_opt
-            data[i,j] = nanmean(out["grbds"][mn_key][field] ./ out[method2][mn_key][field])
+            data[i,j] = nanmean((out["grbds"][mn_key][field].-out[method2][mn_key][field]) ./ out[method2][mn_key][field])
           else
-            data[i,j] = nanmean(min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]) ./ out[method2][mn_key][field])
+            data[i,j] = nanmean((min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]).-out[method2][mn_key][field]) ./ out[method2][mn_key][field])
           end
+        elseif method1 == "osqp"
+          data[i,j] = nanmean(out[method1][mn_key][field] ./ out[method2][mn_key]["walltime_i1"])
         elseif method2 == "grb_best"
           if grb_opt && grbds_opt
-            data[i,j] = nanmean(out[method1][mn_key][field] ./ min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]))
+            data[i,j] = nanmean((out[method1][mn_key][field].-min.(out["grb"][mn_key][field], out["grbds"][mn_key][field])) ./ min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]))
           elseif grb_opt && !grbds_opt
-            data[i,j] = nanmean(out[method1][mn_key][field] ./ out["grb"][mn_key][field])
+            data[i,j] = nanmean((out[method1][mn_key][field].-out["grb"][mn_key][field]) ./ out["grb"][mn_key][field])
           elseif !grb_opt && grbds_opt
-            data[i,j] = nanmean(out[method1][mn_key][field] ./ out["grbds"][mn_key][field])
+            data[i,j] = nanmean((out[method1][mn_key][field].-out["grbds"][mn_key][field]) ./ out["grbds"][mn_key][field])
           else
-            data[i,j] = nanmean(out[method1][mn_key][field] ./ min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]))
+            data[i,j] = nanmean((out[method1][mn_key][field].-min.(out["grb"][mn_key][field], out["grbds"][mn_key][field])) ./ min.(out["grb"][mn_key][field], out["grbds"][mn_key][field]))
           end
+        elseif method2=="osqp"
+          data[i,j] = nanmean((out[method1][mn_key]["walltime_i1"].-out[method2][mn_key][field]) ./ out[method2][mn_key][field])
         else
-          data[i,j] = nanmean(out[method1][mn_key][field] ./ out[method2][mn_key][field])
+          data[i,j] = nanmean((out[method1][mn_key][field].-out[method2][mn_key][field]) ./ out[method2][mn_key][field])
         end
 
         println("(i,j) = $((i,j))")
@@ -170,6 +176,8 @@ function get_mn_grid(out::Dict, outname::String, method1::String, method2::Strin
           println("method1 = $method1")
           println("method2 = $method2")
           idx_ok2[i,j] = (grb_opt || grbds_opt)
+        elseif method2=="osqp"
+          idx_ok2[i,j] = all(out[method2][mn_key]["pinfeas"] .<= 1e-3) && all(out[method2][mn_key]["dinfeas"] .<= 1e-3) && all(out[method2][mn_key]["relgap"] .<= 1e-3)
         else
           # idx_ok2[i,j] = out[method2][mn_key]["status"][1] == 1
           idx_ok2[i,j] = all(out[method2][mn_key]["pinfeas"] .<= tol) && all(out[method2][mn_key]["dinfeas"] .<= tol) && all(out[method2][mn_key]["relgap"] .<= tol)
@@ -230,9 +238,9 @@ for oe in objexpers
         outall[oe][on]["walltime_$(md)_alm"] = get_mn_grid(outall[oe][on], p*on, md, "alm", "walltime", min_m_show, max_n_show)
         outall[oe][on]["walltime_alm_$(md)"] = get_mn_grid(outall[oe][on], p*on, "alm", md, "walltime", min_m_show, max_n_show)
         ratios = copy(outall[oe][on]["walltime_$(md)_alm"][2])
-        lose_idx = findall((ratios.<1) .&& (ratios.>0))
+        lose_idx = findall(ratios.<0)
         for li in lose_idx
-          ratios[li] = -1.0 / ratios[li]
+          ratios[li] = -outall[oe][on]["walltime_alm_$(md)"][2][li]
         end
         idx1 = outall[oe][on]["walltime_$(md)_alm"].idx_ok1 # numerator
         idx2 = outall[oe][on]["walltime_$(md)_alm"].idx_ok2 # denominator
@@ -286,13 +294,13 @@ for oe in objexpers
       if md == "alm"
         continue
       else
-        plottitle = "$(mdn)/p-ALM: " * L"L=%$(L)" * ", " *  L"k=%$(k)\%m"
+        # plottitle = "($(mdn)/ALM) " * L"$-$" * " 1: " * L"L=%$(L)" * ", " *  L"k=%$(k)\%m"
+        # plottitle = "$(mdn) vs ALM: " * L"L=%$(L)" * ", " *  L"k=%$(k)\%m"
+        plottitle = L"L=%$(L)" * ", " *  L"k=%$(k)\%m"
         plotname = "mnheatmap__$(on)__$(objtype)__$(mdn)"
-        # vhi = ceil(max(maximum(outall[oe][on]["walltime_$(md)_alm_grid"][end-3:end,1:3]), 1.0))
-        # vlo = floor(min(minimum(outall[oe][on]["walltime_$(md)_alm_grid"]), -1.0))
         N = size(outall[oe][on]["walltime_$(md)_alm_grid"],1)
-        IDX_i = [N, N-1, N-2, N-3]
-        IDX_j = [1, 2, 3, 4]
+        IDX_i = [N, N-1, N-2]
+        IDX_j = [1, 2, 3]
         vhi = ceil(max(maximum([outall[oe][on]["walltime_$(md)_alm_grid"][i,j] for (i,j) in zip(IDX_i, IDX_j)]), 1.0))
         vlo = floor(min(minimum(outall[oe][on]["walltime_$(md)_alm_grid"]), -1.0))
         plot_grid2(
@@ -617,8 +625,8 @@ latex_tabular(
       MultiColumn(2, :c, L"$\text{Time}_{\text{b}}: \epsilon=10^{-6}$"), "",
       MultiColumn(2, :c, L"$\text{Time}_{\text{c}}: \epsilon=10^{-8}$"), "",
       MultiColumn(2, :c, L"\% $\text{Time}_{\text{c}}$: Sort"), "",
-      MultiColumn(2, :c, L"\% $\text{Time}_{\text{c}}$: $\widehat{\nabla}^2\varphi\setminus v$"), "",
-      MultiColumn(2, :c, L"\% $\text{Time}_{\text{c}}$: $\widehat{\nabla}\varphi$"), "",
+      MultiColumn(2, :c, L"\% $\text{Time}_{\text{c}}$: $V^{-1}v$"), "",
+      MultiColumn(2, :c, L"\% $\text{Time}_{\text{c}}$: ${\nabla}\varphi$"), "",
       # MultiColumn(2, :c, L"\text{avg SSN dim}"), "",
       MultiColumn(2, :c, L"\text{ALM }\mid\text{ SSN iter}"), "",
       MultiColumn(2, :c, L"\text{avg }|\bar\beta|"), "",

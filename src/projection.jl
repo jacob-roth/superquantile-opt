@@ -1,7 +1,7 @@
-include("projection_lcp.jl")
+# include("projection_lcp.jl")
 include("projection_snake.jl")
-include("projection_grid.jl")
-include("projection_gurobi.jl")
+# include("projection_grid.jl")
+# include("projection_gurobi.jl")
 
 """
 write solution of (`l`, `u`)-box projection of `x0` into `x`, where `l` <= `u` is NOT checked
