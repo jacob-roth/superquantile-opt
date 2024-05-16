@@ -14,7 +14,8 @@ where
 - $\mathsf{CVaR}_{\tau}\bigl(y\bigr)$ denotes the (empirical) superquantile of a (realization of a random) vector $y\in\mathbb{R}^m$ at confidence $\tau\in(0,1)$ with $`\mathsf{CVaR}_{\tau}\bigl(y\bigr) = k(\tau)^{-1}\mathsf{T}_{k(\tau)}(y)`$ where $k(\tau) := m\cdot(1-\tau)$ and where $`\mathsf{T}_k(\cdot)`$ denotes the top- $\\!\\!k$-sum operator$`^{[2]}`$
 - $f$ is smooth and convex;
 - for each $\ell\in\\{0,1,\ldots,L\\}$, $`G^\ell(x;\omega^{[m]}) := \bigl\{g^\ell(x;\omega^j)\bigr\}_{j=1}^m`$ is a collection of convex continuously differentiable scalar functions $`g^\ell(\,\cdot\,; \omega)`$ evaluated at $m$ SAA scenarios $`\{ \omega^j \}_{j=1}^m`$.
-  
+
+Note that the solver framework can handle different a number of scenarios for each superquantile constraint $`\ell\in\{0,1,\ldots,L\}`$ by fixing $`g^{\ell}(\,\cdot\,;\omega)\equiv0`$ for certain scenario indices. In the implementation, each $\ell$ is explicitly given $m_\ell$.
 
 The repository contains two directories related to the paper https://arxiv.org/abs/2405.07965:
 - `src/`: implementations of the p-ALM.
