@@ -6,9 +6,9 @@ using StatsBase
 using Dates, DataStructures, DelimitedFiles, LaTeXStrings, LaTeXTabulars # save results
 using Gurobi, SparseMatricesCSR, SparseArrays, OSQP # experiments
 if Sys.iswindows()
-  global const PROJPATH = match(r".*cc-non", @__DIR__).match*"\\"
+  global const PROJPATH = match(r".*superquantile-opt", @__DIR__).match*"\\"
 else
-  global const PROJPATH = match(r".*cc-non/", @__DIR__).match
+  global const PROJPATH = match(r".*superquantile-opt/", @__DIR__).match
 end
 
 include("structures.jl")
